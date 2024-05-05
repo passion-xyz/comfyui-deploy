@@ -10,6 +10,8 @@ from fastapi.responses import HTMLResponse
 
 # deploy_test = False
 
+comfyui_commit_sha = "a38b9b3ac152fb5679dad03813a93c09e0a4d15e"
+
 import os
 current_directory = os.path.dirname(os.path.realpath(__file__))
 
@@ -35,18 +37,22 @@ if not deploy_test:
     # dockerfile_image = Image.from_dockerfile(f"{current_directory}/Dockerfile", context_mount=Mount.from_local_dir(f"{current_directory}/data", remote_path="/data"))
 
     dockerfile_image = (
-        modal.Image.debian_slim()
+        modal.Image.debian_slim(python_version="3.11")
         .env({
             "CIVITAI_TOKEN": config["civitai_token"],
         })
-        .apt_install("git", "wget")
+        .apt_install(
+            "git",
+            "unzip",
+            "wget"
+        )
         .pip_install(
-            "git+https://github.com/modal-labs/asgiproxy.git", "httpx", "tqdm"
+            "git+https://github.com/modal-labs/asgiproxy.git", "httpx", "tqdm", "requests",
         )
         .apt_install("libgl1-mesa-glx", "libglib2.0-0")
         .run_commands(
-            # Basic comfyui setup
             "git clone https://github.com/comfyanonymous/ComfyUI.git /comfyui",
+            f"cd /comfyui && git checkout {comfyui_commit_sha}",
             "cd /comfyui && pip install xformers!=0.0.18 -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu121",
 
             # Install comfyui manager
